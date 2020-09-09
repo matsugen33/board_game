@@ -47,14 +47,22 @@ class Othello():
         for color in ('b', 'w'):
             if color == 'b':
                 stone = 'o'
+                b_stone = cnt_stones(self.board)[stone]
             elif color == 'w':
                 stone = 'x'
+                w_stone = cnt_stones(self.board)[stone]
             print('{}: {}'.format(color, cnt_stones(self.board)[stone]))
+        if b_stone > w_stone:
+            print('b wins')
+        elif b_stone < w_stone:
+            print('w wins')
+        else:
+            print('draw')      
     
     def start(self):
         color = 'b'
         print('start')
-        while():
+        while(1):
             self.draw()
             if cnt_able(self.board, color) == 0:
                 print('pass ({} cannot place)'.format(color))
