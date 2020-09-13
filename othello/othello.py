@@ -77,7 +77,32 @@ class Othello():
                 color = change_color(color)
 
         self.check_situation()
-        
+
+    def vs_com(self):
+        color = 'b'
+        print('start')
+        while(1):
+            self.draw()
+            #print(cnt_able(self.board, color))
+            if cnt_able(self.board, color)[0] == 0:
+                print('pass ({} cannot place)'.format(color))
+                color = change_color(color)
+                if cnt_able(self.board, color)[0] == 0:
+                    print('pass ({} cannot place)'.format(color))
+                    break
+                else:
+                    continue
+            if color == 'b':
+                position = input('select place {}: '.format(color))
+                if self.place(color, position):
+                    color = change_color(color)
+                    continue
+            else:
+                position = com(self.board, color)
+                if self.place(color, position):
+                    color = change_color(color)
+
+        self.check_situation()        
 
 def change_color(color):
     if color == 'b':
@@ -89,13 +114,15 @@ def change_color(color):
         return None
 
 def played_board(board, row, col, stone):
+    board_ = [[board[i][j] for j in range(len(board[0]))] for i in range(len(board))]
+
     if stone == 'x':
         another_stone = 'o'
     elif stone == 'o':
         another_stone = 'x'
     else:
         print('stoneはoかxです')
-        return board, 0
+        return board_, 0
 
     flag = 0
     for i in range(3):
@@ -106,15 +133,15 @@ def played_board(board, row, col, stone):
                     if board[row+(i-1)*k][col+(j-1)*k] == stone:
                         flag = 1
                         for l in range(k):
-                            board[row+(i-1)*l][col+(j-1)*l] = stone
+                            board_[row+(i-1)*l][col+(j-1)*l] = stone
                         break
                     k += 1
     
     if flag == 0:
         print('そこに石は置けません')
-        return board, 0
+        return board_, 0
     else:
-        return board, 1
+        return board_, 1
 
 def cnt_stones(board):
     cnt = {'.':0, 'o':0, 'x':0}
@@ -134,6 +161,7 @@ def cnt_able(board, color):
         print('colorはbかwです')
 
     cnt = 0
+    ables = []
     for row in range(1,9):
         for col in range(1,9):
             if board[row][col] != '.':
@@ -148,21 +176,88 @@ def cnt_able(board, color):
                         while(row+(i-1)*k not in (0,9) and col+(j-1)*k not in (0,9)):
                             if board[row+(i-1)*k][col+(j-1)*k] == stone:
                                 cnt += 1
+                                ables.append([row, col])
                                 flag = 1
                                 break
                             k += 1
                     j += 1    
                 i += 1
-    return cnt
+    return cnt, ables
+
+def com(board, color):
+    try:
+        if color == 'b':
+            stone = 'o'
+            another_color = 'w'
+        elif color == 'w':
+            stone = 'x'
+            another_color = 'b'
+    except:
+        print('cannot play')       
+
+    choices = []
+    cnt, candidates = cnt_able(board, color)
+    for num in range(cnt):
+        row = candidates[num][0]
+        col = candidates[num][1]
+        board_temp, _ = played_board(board, row, col, stone)
+        cnt_temp = cnt_able(board_temp, color)[0]
+        cnt_temp_another = cnt_able(board_temp, another_color)[0]
+        d_eval = eval_board(board_temp)
+        choices.append([row, col, d_eval[color] + cnt_temp])
+    choices.sort(reverse=True, key=lambda x: x[2])
+
+    position = '{}{}'.format(chr(int(choices[0][1])+96), int(choices[0][0]))
+    print('com select {}'.format(position))
+    return position
+
+def eval_board(board):
+    d_eval = {'b':0, 'w':0}
+    for i in range(1,9):
+        for j in range(1,9):
+            i_ = min(i, 9-i)
+            j_ = min(j, 9-j)
+            pos = (min(i_, j_), max(i_, j_))
+            if pos == (1, 1):
+                if board[i][j]  == 'o':
+                    d_eval['b'] += 30
+                elif board[i][j] == 'x':
+                    d_eval['w'] += 30
+            elif pos == (1, 2):
+                if board[i][j]  == 'o':
+                    d_eval['b'] += -12
+                elif board[i][j] == 'x':
+                    d_eval['w'] += -12
+            elif pos == (2, 2):
+                if board[i][j]  == 'o':
+                    d_eval['b'] += -15
+                elif board[i][j] == 'x':
+                    d_eval['w'] += -15                             
+            elif min(i_, j_) == 2:
+                if board[i][j]  == 'o':
+                    d_eval['b'] += -3
+                elif board[i][j] == 'x':
+                    d_eval['w'] += -3                
+            elif max(i_, j_) == 4:
+                if board[i][j]  == 'o':
+                    d_eval['b'] += -1
+                elif board[i][j] == 'x':
+                    d_eval['w'] += -1
+    vec = [(1,1), (1,-1), (-1,1), (-1,-1)]
+    for (c,s)  in [('b','o'), ('w','x')]:
+        for idx, (i, j) in enumerate([(1,1), (1,8), (8,1), (8,8)]):
+            if board[i][j] == s:
+                k = 1
+                while(board[i+k*vec[idx][0]][j] == s and k < 7):
+                    d_eval[c] += 12
+                    k += 1
+                k = 1
+                while(board[i][j+k*vec[idx][1]] == s and k < 7):
+                    d_eval[c] += 12
+                    k += 1
+    return d_eval
 
 if __name__ == '__main__':
     othello = Othello()
-    othello.start()
-    # othello.check_situation()
-    # othello.draw()
-    # othello.place('b','d3')
-    # othello.check_situation()
-    # othello.draw()
-    # othello.place('w','e3')
-    # othello.check_situation()
-    # othello.draw()
+    #othello.start()
+    othello.vs_com()
